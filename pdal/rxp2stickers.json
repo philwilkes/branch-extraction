@@ -1,0 +1,36 @@
+{
+    "pipeline":[
+        {
+            "type":"readers.rxp"
+        },
+        {
+            "type":"filters.range",
+            "limits":"reflectance[0:25]"
+        },
+        {
+            "type":"filters.dbscan",
+            "min_points":10,
+            "eps":0.05,
+            "dimensions":"X,Y,Z"
+        },
+        {
+            "type":"filters.range",
+            "limits":"ClusterID[0:]"
+        },
+        {
+            "type":"filters.groupby",
+            "dimension":"ClusterID"
+        },
+        {
+            "type":"filters.stats",
+            "dimensions":"X,Y,Z"
+        },     
+        {
+            "type":"writers.text",
+            "format":"csv",
+            "order":"X,Y,Z,ClusterID",
+            "keep_unspecified":"false",
+            "filename":"outputfile.txt"
+        }
+    ]
+}

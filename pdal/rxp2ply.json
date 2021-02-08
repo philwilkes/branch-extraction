@@ -1,0 +1,12 @@
+{
+    "pipeline":[
+        {
+            "type":"readers.rxp"
+        },  
+        {
+            "type":"writers.ply",
+            "storage_mode":"little endian",
+            "dims":"X,Y,Z,reflectance,deviation"
+        }
+    ]
+}
