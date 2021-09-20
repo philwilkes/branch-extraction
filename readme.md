@@ -205,13 +205,15 @@ There are a number of options for fitting a QSM
 
 1.  Create a conda environment using `conda create -n pdal-install -c
     conda-forge gdal ninja cmake cxx-compiler laszip`
+    
+2.  Download the [PDAL current release](https://pdal.io/download.html#current-release-s) 
 
-2.  Download the `rivlib-2_5_10-x86_64-linux-gcc9.zip` from the memebers
+3.  Download the `rivlib-2_5_10-x86_64-linux-gcc9.zip` from the memebers
     area of the RIEGL website (make sure to get the gcc9 version). Unzip
     and add an environmental variable to point at the directory `export
     RiVLib_DIR=/path/to/rivlib-2_5_10-x86_64-linux-gcc9`
 
-3.  Follow the [PDAL Unix
+4.  Follow the [PDAL Unix
     Compilation](https://pdal.io/development/compilation/unix.html)
     notes. Before running cmake edit line 63 of `cmake/options.cmake` to
     `"Choose if RiVLib support should be built" True)`
