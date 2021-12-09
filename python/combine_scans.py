@@ -12,7 +12,7 @@ if __name__ == '__main__':
     
     df = pd.DataFrame()
 
-    for asc in glob.glob(os.path.join(project, 'ascii', '*.ascii')):
+    for asc in glob.glob(os.path.join(project, 'ascii', '*.ascii')) + glob.glob(os.path.join(project, 'ascii', '*.txt')):
         
         scan_position = int(os.path.split(asc)[-1][7:10])
         print ('\tprocessing scan position:', scan_position)
