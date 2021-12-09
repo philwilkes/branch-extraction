@@ -81,9 +81,13 @@ if __name__ == '__main__':
         stickers = bright.groupby('sticker_labels_').mean()
         idx = distanceFilter(stickers, qrdar.common.template())
         stickers = stickers.loc[~stickers.index.isin(idx)]
+        if len(stickers) == 0: 
+            print('\t', pcn, 'no stickers found')
+            continue
 
         stickers.loc[:, ['x', 'y', 'z']] = qrdar.common.apply_rotation(np.linalg.inv(ground_m), stickers)
         stickers.loc[:, ['x', 'y', 'z']] = qrdar.common.apply_rotation(np.linalg.inv(rotation), stickers)
 
         stickers[['x', 'y', 'z']].to_csv(os.path.join('../stickers/', pcn[:-4] + '.stickers.txt'), 
                                          sep=' ', header=True)
+        print('\t', pcn, len(stickers), 'found')
