@@ -87,12 +87,22 @@ def read_aruco2(pc,
                                    expected=expected, 
                                    print_figure=True,
                                    marker_template=marker_template,
-                                   codes_dict=codes_dict)
+                                   codes_dict=codes_dict,
+                                   verbose=verbose)
     targets.rename(columns={'code':'aruco'}, inplace=True)
     targets = targets[targets.confidence == 1]
     targets.reset_index(inplace=True)
     
-    return targets#[['aruco', 'x', 'y']]
+    sticker_centres = pd.DataFrame(columns=['x', 'y', 'z', 'aruco'])
+    i = 0
+
+    for ix, row in targets.iterrows():
+        for col in ['c0', 'c1', 'c2', 'c3']:
+            if isinstance(row[col], float): continue
+            sticker_centres.loc[i, :] = list(row[col]) + [row.aruco]
+            i += 1
+    
+    return sticker_centres#[['aruco', 'x', 'y']]
 
 def identify_ground2(pc, target_centres):
     
@@ -113,7 +123,7 @@ def find_buckets(pc, target_centres, N, bucket_height=.38, bucket_radius=.15):
     
     ### find buckets and remove ###
     print ('finding buckets')
-    buckets = pc[pc.z.between(.1, .3)]
+    buckets = pc[pc.z.between(.1, .4)]
 
     # voxelise to speed-up dbscan
     buckets.loc[:, 'xx'] = (buckets.x // .005) * .005
@@ -121,6 +131,8 @@ def find_buckets(pc, target_centres, N, bucket_height=.38, bucket_radius=.15):
     buckets.loc[:, 'zz'] = (buckets.z // .005) * .005
     buckets.sort_values(['xx', 'yy', 'zz', 'refl'], inplace=True)
     bucket_voxels = buckets[~buckets[['xx', 'yy', 'zz']].duplicated()]
+
+#     print(buckets)
 
     dbscan = DBSCAN(min_samples=20, eps=.05).fit(bucket_voxels[['xx', 'yy', 'zz']])
     bucket_voxels.loc[:, 'labels_'] = dbscan.labels_
@@ -188,11 +200,12 @@ def isolate_branches(pc, N, translation, odir):
     
     for i, label in enumerate(branches.labels_.unique()):
         b = branches[branches.labels_ == label]
+        print(b[(b.z < .5) & (~np.isnan(b.aruco))].aruco.value_counts())
         aruco = b[(b.z < .5) & (~np.isnan(b.aruco))].aruco.value_counts().index[0]
-        tag = translation[(translation.aruco == aruco)].tag.values[0]
+        tag = translation[(translation.code == aruco)].name.values[0]
         b.loc[:, ['x', 'y', 'z']] = qrdar.common.apply_rotation(np.linalg.inv(M), b)        
-        ply_io.write_ply(os.path.join(odir, '{}.ply'.format(tag)), b[cols])
-        print ('\tsaved branch to:', os.path.join(odir, '{}.ply'.format(tag)))
+        ply_io.write_ply(os.path.join(odir, '{}.ply'.format(tag)), b[[c for c in cols if c in b.columns]])
+        print ('\tsaved branch to:', os.path.join(args.odir, '{}.ply'.format(tag)))
 
 def read_pc(args):
     
@@ -220,36 +233,38 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # path = '2019-07-26.012.riproject/ascii/2019-07-26.012.ply'
-    project = os.path.split(args.pc)[1][:-4]
+    project = os.path.split(args.pc)[1].split('.')[0]
+    if args.verbose: print ('processing project:', project)
 
     # reading in translation will need to be edited
     # dependent on formatting etc.
     ctag = lambda row: '{}-{}-{}'.format(*row[['plot', 'treetag', 'light']])
     translation = pd.read_csv(args.translation)
     translation.rename(columns={c:c.lower() for c in translation.columns}, inplace=True)
-    translation.loc[:, 'tag'] = translation.apply(ctag, axis=1)
-    translation.tag = [t.replace('-nan', '') for t in translation.tag]
+    #translation.loc[:, 'tag'] = translation.apply(ctag, axis=1)
+    #translation.tag = [t.replace('-nan', '') for t in translation.tag]
     translation = translation[translation.project == project]
-    
-    if args.verbose: print ('processing project:', args.pc)
-    
+
     n_targets = len(translation[translation.project == project])
-    expected = translation[translation.project == project].aruco.astype(int).values
-    print('expecting targets:', n_targets)
+    expected = translation[translation.project == project].code.astype(int).values
+    if args.verbose: print('expecting targets:', n_targets)
 
     # read in branch scan
     pc = read_pc(args)
 
     ### read aruco targets ###
     target_centres = read_aruco2(pc, expected, verbose=args.verbose)
-    
+    if args.verbose: print('targets identified')    
+
     ### identify ground ###
     pc, M = identify_ground2(pc, target_centres)
+    if args.verbose: print('ground identified')
 
     ### find buckets ###
     pc, buket_centres = find_buckets(pc, target_centres, n_targets,
                                  bucket_height=args.bucket_height,
                                  bucket_radius=args.bucket_radius)
+    if args.verbose: print('buckets found')
 
     ### isolate branches ###
     isolate_branches(pc, n_targets, translation, args.odir)
