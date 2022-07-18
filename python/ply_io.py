@@ -29,15 +29,22 @@ def read_ply(fp, newline=None):
             if 'element face' in line:
                 raise Exception('.ply appears to be a mesh')
             if 'end_header' in line: break
-    
+
+        for j in range(len(prop)):
+            if 'scalar_' in prop[j]:
+                prop[j] = prop[j].split('scalar_')[-1]
+        
         ply.seek(length)
 
         if fmt == 'binary':
             arr = np.fromfile(ply, dtype=','.join(dtype))
+            df = pd.DataFrame(data=arr)
+            df.columns = prop
+            df = df.dropna()  # drop rows with NAN values
         else:
-            arr = np.loadtxt(ply)
-        df = pd.DataFrame(data=arr)
-        df.columns = prop
+            columns = prop
+            df = pd.read_csv(ply, sep='\s+', names=columns, header=None)
+            df = df.dropna()  # drop rows with NAN values
 
     return df
 

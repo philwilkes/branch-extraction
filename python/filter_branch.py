@@ -3,7 +3,8 @@ import pandas as pd
 from sklearn.neighbors import NearestNeighbors
 import argparse
 import os
-import qrdar
+import ply_io
+
 
 def nn(df, N=2):
     
@@ -22,6 +23,9 @@ def process_branch(B, length=.01):
     # filter high deviation points
     if 'dev' in B.columns:
         B = B[B.dev.between(0, 10)] 
+    # filter low reflectance points 
+    if 'refl' in B.columns:
+        B = B[B.refl.between(-20,5)]
     
     # fuzz filter
     # voxelise branches (length = 1 cm)
@@ -57,9 +61,10 @@ if __name__ == '__main__':
     parser.add_argument('--suffix', default='', help='file name suffix')
     args = parser.parse_args()
     
-    pc = qrdar.io.read_ply(args.pc)
+    # pc = qrdar.io.read_ply(args.pc)
+    pc = ply_io.read_ply(args.pc)
     b = process_branch(pc)
-    qrdar.io.write_ply(os.path.join(args.odir, '{}{}.ply'.format(os.path.split(args.pc)[1][:-4], 
+    ply_io.write_ply(os.path.join(args.odir, '{}{}.ply'.format(os.path.split(args.pc)[1][:-4], 
                                                                '' if len(args.suffix) == 0 else '.' + args.suffix)), 
                      b)
     
